@@ -7,10 +7,11 @@ juke.factory('PlayerFactory', function($rootScope){
   var playing = false;
   var progress = 0;
   var currentAlbum = null;
+  
 
   var audio = document.createElement('audio');
   audio.addEventListener('ended', function () {
-    this.next();
+    factoryObj.next();
     // $scope.$apply(); // triggers $rootScope.$digest, which hits other scopes
     $rootScope.$evalAsync(); // likely best, schedules digest if none happening
   });
@@ -20,20 +21,48 @@ juke.factory('PlayerFactory', function($rootScope){
     $rootScope.$evalAsync(); // likely best, schedules digest if none happening
   });
 
+
+  var audio2 = document.createElement('audio');
+  audio2.addEventListener('ended', function () {
+    factoryObj.next();
+    // $scope.$apply(); // triggers $rootScope.$digest, which hits other scopes
+    $rootScope.$evalAsync(); // likely best, schedules digest if none happening
+  });
+  audio2.addEventListener('timeupdate', function () {
+    progress = 100 * audio2.currentTime / audio2.duration;
+    // $scope.$digest(); // re-computes current template only (this scope)
+    $rootScope.$evalAsync(); // likely best, schedules digest if none happening
+  });
+  audio2.src = null;
+
+
   factoryObj.setCurrentAlbum = function(album) {
   	currentAlbum = album;
   }
 
   factoryObj.start = function(song){
-  	this.pause();
+    factoryObj.pause();
     playing = true;
     // resume current song
     if (song === currentSong) return audio.play();
     // enable loading new song
     currentSong = song;
-    audio.src = song.audioUrl;
-    audio.load();
-    audio.play();
+    
+
+    if (audio2.src === song.url) {
+      audio = Object.assign({}, audio2);
+      audio.play();
+    } else {
+      audio.src = song.audioUrl;
+      audio.load();
+      audio.play();
+    }
+
+    var index = currentSong.albumIndex;
+    index = mod( (index + 1), currentAlbum.songs.length );
+    var nextSong = currentAlbum.songs[index]
+    audio2.src = nextSong.audioUrl;
+    audio2.load();
   };
 
   factoryObj.pause = function(){
@@ -55,13 +84,13 @@ juke.factory('PlayerFactory', function($rootScope){
   };
 
   factoryObj.next = function(){
-  	this.pause();
+  	factoryObj.pause();
   	skip(1);
   	
   };
 
   factoryObj.previous = function(){
-  	this.pause();
+  	factoryObj.pause();
   	skip(-1);
 
   };
@@ -78,16 +107,16 @@ juke.factory('PlayerFactory', function($rootScope){
   factoryObj.toggle = function(song) {
   	if (playing) {
   	  if (song === currentSong){
-  	    this.pause();
+  	    factoryObj.pause();
   	  } else {
-  	    this.start(song);
+  	    factoryObj.start(song);
   	  }
   	}
   	else if (!playing) {
   	  if (song === currentSong){
-  	    this.resume();
+  	    factoryObj.resume();
   	  } else {
-  	    this.start(song);
+  	    factoryObj.start(song);
   	  }
   	}
   };

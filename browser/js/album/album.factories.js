@@ -1,7 +1,9 @@
-juke.factory('AlbumFactory', function($http) {
+juke.factory('AlbumFactory', function($http, SongFactory, $q) {
   var albumobj = {};
 
   var currentAlbum = null;
+
+  albumobj.cache = {};
 
   albumobj.getCurrentAlbum = function(){
     return currentAlbum;
@@ -10,32 +12,31 @@ juke.factory('AlbumFactory', function($http) {
   albumobj.fetchAll = function(){
     return $http.get('/api/albums/')
       .then(function (res) { return res.data; })
-      // .then(function(albums) {
+      .then(function(albums) {
 
-      //   return albums.map(function(album) {
-      //     album.imageUrl = '/api/albums/' + album.id + '/image';
-      //     album.songCount = album.songs.length;
-      //     album.songs.forEach(function (song, i) {
-      //       song.audioUrl = '/api/songs/' + song.id + '/audio';
-      //       song.albumIndex = i;
-      //     });
-      //     console.log(album)
-      //     return album;
-      //   })
-      // });
+        return albums.map(function(album) {
+          album.imageUrl = '/api/albums/' + album.id + '/image';
+          return album;
+        })
+      });
   };
 
   albumobj.fetchById = function(id){
+    var currentTime = Date.now();
+    if (albumobj[id] && currentTime - albumobj[id][0] < 60000) {
+      return albumobj[id][1];
+    }
+
     return $http.get('/api/albums/' + id)
       .then(function (res) {return res.data;})
       .then(function(album) {
         album.imageUrl = '/api/albums/' + album.id + '/image';
         album.songCount = album.songs.length;
         album.songs.forEach(function (song, i) {
-          song.audioUrl = '/api/songs/' + song.id + '/audio';
-          song.albumIndex = i;
+          SongFactory.enhance(song, i);
         });
         albumobj.currentAlbum = album;
+        albumobj[id] = [Date.now(), album];
         return album;
       });
   };

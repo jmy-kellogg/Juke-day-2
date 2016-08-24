@@ -3,16 +3,9 @@
 
 juke.controller('AlbumCtrl', function ($scope, $log, StatsFactory, AlbumFactory, PlayerFactory) {
 
+  $scope.show = false;
   // load our initial data
-  AlbumFactory.fetchAll()
-  .then(function (albums) {
-     return AlbumFactory.fetchById(1);
-  })
-  .then(function (album) {
-    $scope.album = album;
-    PlayerFactory.setCurrentAlbum(album);
-  })
-  .catch($log.error); // $log service can be turned on and off; also, pre-bound
+   // $log service can be turned on and off; also, pre-bound
   // .then(function(){
   //   return StatsFactory.totalTime($scope.album);
   // })
@@ -30,6 +23,29 @@ juke.controller('AlbumCtrl', function ($scope, $log, StatsFactory, AlbumFactory,
   $scope.toggle = function (song) {
     PlayerFactory.toggle(song);
   };
+
+  $scope.$on('turnOffMainViews', function(){
+    $scope.show = false;
+  })
+
+  $scope.$on('showSingleAlbum', function(event, _album) {
+    $scope.show = true;
+
+    if (AlbumFactory.fetchById(_album.id).hasOwnProperty('imageUrl')) {
+      console.log("got cached version", AlbumFactory.fetchById(_album.id));
+      $scope.album = AlbumFactory.fetchById(_album.id);
+    } else {
+      console.log("got promise")
+      AlbumFactory.fetchById(_album.id)
+      .then(function (album) {
+        $scope.album = album;
+        PlayerFactory.setCurrentAlbum(album);
+      })
+      .catch($log.error);
+    }
+    
+    
+  })
 
 });
 
